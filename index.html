@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clinical API — Painel</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['DM Sans', 'sans-serif'],
+          mono: ['DM Mono', 'monospace'],
+        },
+        colors: {
+          brand: {
+            50:  '#eff6ff',
+            100: '#dbeafe',
+            500: '#3b82f6',
+            600: '#2563eb',
+            700: '#1d4ed8',
+          }
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family: 'DM Sans', sans-serif; }
+  .result-box { font-family: 'DM Mono', monospace; }
+
+  .fade-in { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid #cbd5e1;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .toast-bar { animation: shrink 3.5s linear forwards; }
+  @keyframes shrink { from { width: 100%; } to { width: 0%; } }
+
+  .modal-panel {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .detalhe-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #94a3b8;
+    margin-bottom: 2px;
+  }
+  .detalhe-valor {
+    font-size: 0.875rem;
+    color: #334155;
+    line-height: 1.5;
+  }
+
+  /* Login screen */
+  .login-bg {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
+  }
+  .login-card {
+    animation: slideUp 0.4s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+
+<body class="min-h-screen bg-slate-50 text-slate-800">
+
+  <!-- ════════════════════════════════
+       TELA DE LOGIN
+  ════════════════════════════════ -->
+  <div id="tela-login" class="login-bg min-h-screen flex items-center justify-center p-4">
+    <div class="login-card w-full max-w-sm">
+
+      <!-- Logo -->
+      <div class="flex flex-col items-center mb-8">
+        <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg mb-4">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-3-3v6M12 3C7.03 3 3 7.03 3 12s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-semibold text-white">Clinical API</h1>
+        <p class="text-blue-200 text-sm mt-1">Acesse o painel de atendimentos</p>
+      </div>
+
+      <!-- Card do formulário -->
+      <div class="bg-white rounded-2xl shadow-2xl p-8">
+        <h2 class="text-lg font-semibold text-slate-800 mb-6">Entrar na conta</h2>
+
+        <div class="flex flex-col gap-4">
+          <div>
+            <label class="block text-xs text-slate-500 mb-1.5 font-medium">E-mail</label>
+            <input id="login-email" type="email" placeholder="admin@teste.com.br"
+              class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+                     placeholder-slate-300 transition">
+          </div>
+
+          <div>
+            <label class="block text-xs text-slate-500 mb-1.5 font-medium">Senha</label>
+            <div class="relative">
+              <input id="login-senha" type="password" placeholder="••••••••"
+                class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+                       placeholder-slate-300 transition pr-10">
+              <!-- toggle show/hide -->
+              <button type="button" id="toggle-senha"
+                onclick="toggleSenha()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                <svg id="eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+                       -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <p id="login-erro" class="text-xs text-red-500 min-h-4 -mt-1"></p>
+
+          <button id="btn-login" onclick="fazerLogin()"
+            class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold
+                   text-sm py-2.5 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+            </svg>
+            Entrar
+          </button>
+        </div>
+
+        <!-- Dica de credenciais de teste -->
+        <div class="mt-5 p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-600">
+          <p class="font-semibold mb-1">🔑 Credenciais de teste</p>
+          <p>Login: <span class="font-mono">admin@teste.com.br</span></p>
+          <p>Senha: <span class="font-mono">admin123</span></p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════
+       PAINEL PRINCIPAL (oculto até login)
+  ════════════════════════════════ -->
+  <div id="tela-painel" class="hidden min-h-screen bg-slate-50 p-6 flex flex-col items-center">
+
+  <!-- ── HEADER ── -->
+  <header class="w-full max-w-3xl mb-8 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center shadow">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-3-3v6M12 3C7.03 3 3 7.03 3 12s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9z"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-lg font-semibold leading-tight text-slate-900">Clinical API</h1>
+        <p class="text-xs text-slate-400">Painel de atendimentos</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Status API -->
+      <span class="flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        API online
+      </span>
+
+      <!-- Info do usuário logado -->
+      <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+        <div class="w-6 h-6 rounded-full bg-brand-600 flex items-center justify-center">
+          <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+        </div>
+        <span id="header-usuario" class="text-xs font-medium text-slate-700"></span>
+      </div>
+
+      <!-- ── BOTÃO SAIR ── -->
+      <button onclick="fazerLogout()"
+        title="Sair da conta"
+        class="flex items-center gap-1.5 text-xs font-medium text-red-500 bg-red-50 border border-red-200
+               hover:bg-red-100 hover:border-red-300 rounded-full px-3 py-1.5 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+        </svg>
+        Sair
+      </button>
+    </div>
+  </header>
+
+  <main class="w-full max-w-3xl flex flex-col gap-6">
+
+    <!-- ── REGISTRO ── -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+      <div class="flex items-center gap-2 mb-5">
+        <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Novo Atendimento</h2>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 mb-3">
+        <div class="flex-1">
+          <label class="block text-xs text-slate-500 mb-1 font-medium">Paciente <span class="text-red-400">*</span></label>
+          <input id="nome" type="text" placeholder="Ex: Maria Silva"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+                   placeholder-slate-300 transition">
+        </div>
+        <div class="flex-1">
+          <label class="block text-xs text-slate-500 mb-1 font-medium">Sintoma <span class="text-red-400">*</span></label>
+          <input id="sintoma" type="text" placeholder="Ex: Febre"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+                   placeholder-slate-300 transition">
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 mb-4">
+        <div class="flex-1">
+          <label class="block text-xs text-slate-500 mb-1 font-medium">Médico Responsável <span class="text-red-400">*</span></label>
+          <input id="medico" type="text" placeholder="Ex: Dr. João"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+                   placeholder-slate-300 transition">
+        </div>
+        <div class="flex-1">
+          <label class="block text-xs text-slate-500 mb-1 font-medium">Prontuário <span class="text-slate-300 font-normal">(opcional)</span></label>
+          <input id="prontuario" type="text" placeholder="Ex: Paciente com febre leve"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+                   placeholder-slate-300 transition">
+        </div>
+      </div>
+
+      <button onclick="registrarAtendimento()"
+        class="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white
+               text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        Salvar Atendimento
+      </button>
+    </section>
+
+    <!-- ADICIONAR AQUI A SECTION DE CONSULTAS SQL  -->
+
+    <!-- ── TABELA DE ATENDIMENTOS ── -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+
+      <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 6h18M3 14h18M3 18h18"/>
+          </svg>
+          <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Atendimentos Registrados</h2>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+            </svg>
+            <input id="tabela-busca" type="text" placeholder="Buscar..."
+              oninput="filtrarTabela()"
+              class="pl-8 pr-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50
+                     focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+                     placeholder-slate-300 transition w-40">
+          </div>
+          <button onclick="carregarAtendimentos()"
+            title="Recarregar"
+            class="p-2 rounded-lg border border-slate-200 text-slate-400
+                   hover:text-brand-600 hover:border-brand-500 hover:bg-brand-50 transition-all">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9
+                   m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto rounded-xl border border-slate-100">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-100">
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Paciente</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Sintomas</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Médico</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Data</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-body">
+            <tr>
+              <td colspan="5" class="text-center py-10 text-slate-300 text-sm">
+                <span class="spinner"></span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="mt-10 mb-4 text-xs text-slate-300 text-center">
+    Clinical API &mdash; SQLite + Express + TypeScript
+  </footer>
+
+  </div><!-- /tela-painel -->
+
+
+  <!-- ════════════════════════════════
+       MODAL — VISUALIZAR (ToggleEYE)
+  ════════════════════════════════ -->
+  <div id="modal-ver"
+    class="hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm
+           flex items-center justify-center p-4">
+    <div class="modal-panel scale-95 opacity-0 bg-white rounded-2xl shadow-xl
+                w-full max-w-md border border-slate-100 overflow-hidden">
+
+      <div class="bg-gradient-to-r from-brand-600 to-brand-500 px-6 py-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div id="ver-avatar"
+              class="w-10 h-10 rounded-full bg-white/20 text-white text-base font-bold
+                     flex items-center justify-center shrink-0">
+            </div>
+            <div>
+              <p id="ver-paciente" class="text-white font-semibold text-base leading-tight"></p>
+              <p class="text-brand-100 text-xs mt-0.5">Registro de atendimento</p>
+            </div>
+          </div>
+          <button onclick="fecharModal('modal-ver')"
+            class="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6 flex flex-col gap-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+            <p class="detalhe-label">Médico</p>
+            <div class="flex items-center gap-1.5 mt-1">
+              <svg class="w-3.5 h-3.5 text-brand-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+              <p id="ver-medico" class="detalhe-valor font-medium"></p>
+            </div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+            <p class="detalhe-label">Data da Consulta</p>
+            <div class="flex items-center gap-1.5 mt-1">
+              <svg class="w-3.5 h-3.5 text-brand-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <p id="ver-data" class="detalhe-valor font-mono text-sm"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+          <p class="detalhe-label">Sintomas</p>
+          <div id="ver-sintomas" class="flex flex-wrap gap-1.5 mt-2"></div>
+        </div>
+
+        <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+          <p class="detalhe-label">Prontuário / Observações</p>
+          <p id="ver-prontuario" class="detalhe-valor mt-1 text-slate-500 italic"></p>
+        </div>
+      </div>
+
+      <div class="px-6 pb-5 flex justify-end gap-2">
+        <button onclick="fecharModal('modal-ver')"
+          class="px-4 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-600
+                 hover:bg-slate-50 transition font-medium">
+          Fechar
+        </button>
+        <button id="ver-editar-btn"
+          class="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700
+                 text-white text-sm font-semibold transition shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
+                 m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+          Editar
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════
+       MODAL — EDITAR
+  ════════════════════════════════ -->
+  <div id="modal-editar"
+    class="hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm
+           flex items-center justify-center p-4">
+    <div class="modal-panel scale-95 opacity-0 bg-white rounded-2xl shadow-xl
+                w-full max-w-md border border-slate-100 p-6">
+
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
+            <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
+                   m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+          </div>
+          <h3 class="font-semibold text-slate-800">Editar Atendimento</h3>
+        </div>
+        <button onclick="fecharModal('modal-editar')"
+          class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <input type="hidden" id="edit-idx">
+      <input type="hidden" id="edit-id">
+
+      <div class="flex flex-col gap-3 mb-1">
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <label class="block text-xs text-slate-500 mb-1 font-medium">Paciente <span class="text-red-400">*</span></label>
+            <input id="edit-nome" type="text"
+              class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition">
+          </div>
+          <div class="flex-1">
+            <label class="block text-xs text-slate-500 mb-1 font-medium">Sintoma <span class="text-red-400">*</span></label>
+            <input id="edit-sintoma" type="text"
+              class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1 font-medium">Médico Responsável <span class="text-red-400">*</span></label>
+          <input id="edit-medico" type="text"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1 font-medium">
+            Prontuário <span class="text-slate-300 font-normal">(opcional)</span>
+          </label>
+          <textarea id="edit-prontuario" rows="2"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+                   transition resize-none"></textarea>
+        </div>
+      </div>
+      <p id="edit-erro" class="text-xs text-red-400 min-h-5 mb-4"></p>
+
+      <div class="flex justify-end gap-2">
+        <button onclick="fecharModal('modal-editar')"
+          class="px-4 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-600
+                 hover:bg-slate-50 transition font-medium">
+          Cancelar
+        </button>
+        <button id="edit-confirmar" onclick="confirmarEdicao()"
+          class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700
+                 text-white text-sm font-semibold transition shadow-sm min-w-24 justify-center">
+          Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════
+       MODAL — EXCLUIR
+  ════════════════════════════════ -->
+  <div id="modal-excluir"
+    class="hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm
+           flex items-center justify-center p-4">
+    <div class="modal-panel scale-95 opacity-0 bg-white rounded-2xl shadow-xl
+                w-full max-w-sm border border-slate-100 p-6">
+
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858
+                   L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </div>
+          <h3 class="font-semibold text-slate-800">Confirmar Exclusão</h3>
+        </div>
+        <button onclick="fecharModal('modal-excluir')"
+          class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <input type="hidden" id="del-idx">
+      <input type="hidden" id="del-id">
+
+      <div class="bg-slate-50 rounded-xl border border-slate-100 p-4 mb-5 text-sm space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="text-slate-400 w-20 text-xs font-medium">Paciente</span>
+          <span id="del-nome" class="font-semibold text-slate-700"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-slate-400 w-20 text-xs font-medium">Sintomas</span>
+          <span id="del-sintoma" class="text-slate-600"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-slate-400 w-20 text-xs font-medium">Médico</span>
+          <span id="del-medico" class="text-slate-600"></span>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400 mb-5">
+        ⚠ Esta ação excluirá permanentemente o registro do banco de dados.
+      </p>
+
+      <div class="flex justify-end gap-2">
+        <button onclick="fecharModal('modal-excluir')"
+          class="px-4 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-600
+                 hover:bg-slate-50 transition font-medium">
+          Cancelar
+        </button>
+        <button id="del-confirmar" onclick="confirmarExclusao()"
+          class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-red-500 hover:bg-red-600
+                 text-white text-sm font-semibold transition shadow-sm min-w-24 justify-center">
+          Excluir
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════
+       TOAST
+  ════════════════════════════════ -->
+  <div id="toast"
+    style="display:none"
+    class="fixed bottom-6 right-6 z-50 items-center gap-3
+           bg-white text-slate-700 shadow-lg rounded-xl
+           px-4 py-3 min-w-64 max-w-xs relative overflow-hidden">
+    <span id="toast-icon" class="shrink-0"></span>
+    <span id="toast-text" class="text-sm font-medium flex-1"></span>
+    <div id="toast-bar" class="absolute bottom-0 left-0 h-0.5 rounded-b-xl"></div>
+  </div>
+
+
+  <!-- ── Scripts ── -->
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+
+    // ══════════════════════════════════════════
+    // AUTH — JWT helpers
+    // ══════════════════════════════════════════
+
+    function getToken() {
+      return sessionStorage.getItem('clinical_token');
+    }
+
+    function getUsuario() {
+      return sessionStorage.getItem('clinical_usuario') || 'Admin';
+    }
+
+    function authHeaders() {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`,
+      };
+    }
+
+    // Verifica se já está logado ao carregar a página
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = getToken();
+      if (token) {
+        mostrarPainel();
+      } else {
+        mostrarLogin();
+      }
+      // Enter no campo de senha faz login
+      document.getElementById('login-senha').addEventListener('keydown', e => {
+        if (e.key === 'Enter') fazerLogin();
+      });
+      document.getElementById('login-email').addEventListener('keydown', e => {
+        if (e.key === 'Enter') fazerLogin();
+      });
+    });
+
+    function mostrarLogin() {
+      document.getElementById('tela-login').classList.remove('hidden');
+      document.getElementById('tela-painel').classList.add('hidden');
+      document.body.className = 'min-h-screen bg-slate-50 text-slate-800';
+    }
+
+    function mostrarPainel() {
+      document.getElementById('tela-login').classList.add('hidden');
+      document.getElementById('tela-painel').classList.remove('hidden');
+      document.getElementById('header-usuario').textContent = getUsuario();
+      carregarAtendimentos();
+    }
+
+    // ── FAZER LOGIN ────────────────────────────
+    async function fazerLogin() {
+      const email = document.getElementById('login-email').value.trim();
+      const senha = document.getElementById('login-senha').value;
+      const erroEl = document.getElementById('login-erro');
+      const btn    = document.getElementById('btn-login');
+
+      erroEl.textContent = '';
+
+      if (!email || !senha) {
+        erroEl.textContent = 'Preencha e-mail e senha.';
+        return;
+      }
+
+      // Loading no botão
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner" style="border-top-color:#fff"></span>';
+
+      try {
+        const res  = await fetch(`${API_URL}/login`, {
+          method : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body   : JSON.stringify({ email, senha }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          erroEl.textContent = data.error ?? 'Credenciais inválidas.';
+          return;
+        }
+
+        // Salva token e usuário na session
+        sessionStorage.setItem('clinical_token', data.token);
+        sessionStorage.setItem('clinical_usuario', data.usuario?.nome ?? email);
+
+        mostrarPainel();
+      } catch {
+        erroEl.textContent = 'Erro ao conectar com o servidor.';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+          </svg>
+          Entrar`;
+      }
+    }
+
+    // ── FAZER LOGOUT ───────────────────────────
+    function fazerLogout() {
+      sessionStorage.removeItem('clinical_token');
+      sessionStorage.removeItem('clinical_usuario');
+      // Limpa campos de login
+      document.getElementById('login-email').value = '';
+      document.getElementById('login-senha').value = '';
+      document.getElementById('login-erro').textContent = '';
+      mostrarLogin();
+    }
+
+    // ── TOGGLE SENHA ───────────────────────────
+    function toggleSenha() {
+      const input = document.getElementById('login-senha');
+      const icon  = document.getElementById('eye-icon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.innerHTML = `
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7
+               a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242
+               M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5
+               c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>`;
+      } else {
+        input.type = 'password';
+        icon.innerHTML = `
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+               -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+      }
+    }
+
+    // ══════════════════════════════════════════
+    // ATENDIMENTOS
+    // ══════════════════════════════════════════
+
+    async function registrarAtendimento() {
+      const nome       = document.getElementById('nome').value.trim();
+      const sintoma    = document.getElementById('sintoma').value.trim();
+      const medico     = document.getElementById('medico').value.trim();
+      const prontuario = document.getElementById('prontuario').value.trim();
+
+      if (!nome || !sintoma || !medico) {
+        mostrarToast('Preencha paciente, sintoma e médico.', 'danger');
+        return;
+      }
+
+      try {
+        const res  = await fetch(`${API_URL}/atendimento`, {
+          method : 'POST',
+          headers: authHeaders(),
+          body   : JSON.stringify({ nome, sintoma, medico, prontuario: prontuario || undefined }),
+        });
+        const data = await res.json();
+
+        if (res.status === 401 || res.status === 403) {
+          mostrarToast('Sessão expirada. Faça login novamente.', 'danger');
+          fazerLogout();
+          return;
+        }
+
+        if (!res.ok) {
+          mostrarToast(data.error ?? 'Erro ao salvar.', 'danger');
+          return;
+        }
+
+        document.getElementById('nome').value       = '';
+        document.getElementById('sintoma').value    = '';
+        document.getElementById('medico').value     = '';
+        document.getElementById('prontuario').value = '';
+        mostrarToast('Atendimento registrado com sucesso!', 'success');
+        carregarAtendimentos();
+      } catch {
+        mostrarToast('Erro ao conectar com a API.', 'danger');
+      }
+    }
+  </script>
+
+  <script>
+// ─────────────────────────────────────────────
+//  Tabela de atendimentos + modais
+// ─────────────────────────────────────────────
+
+let atendimentos = [];
+let toastTimer   = null;
+
+// ── CARREGAR / RENDERIZAR ──────────────────────
+
+async function carregarAtendimentos() {
+  const tbody = document.getElementById('tabela-body');
+  tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-300 text-sm">
+    <span class="spinner inline-block"></span></td></tr>`;
+
+  try {
+    const res = await fetch(`${API_URL}/atendimentos`, {
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      mostrarToast('Sessão expirada. Faça login novamente.', 'danger');
+      fazerLogout();
+      return;
+    }
+
+    const data = await res.json();
+    atendimentos = data.map((item, idx) => ({ ...item, _idx: idx }));
+    renderizarTabela();
+  } catch {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400 text-sm">
+      ⚠ Não foi possível carregar os atendimentos. Verifique se o servidor está rodando.
+    </td></tr>`;
+  }
+}
+
+function renderizarTabela(lista = atendimentos) {
+  const tbody = document.getElementById('tabela-body');
+
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-300 text-sm">
+      Nenhum atendimento registrado ainda.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = lista.map(a => `
+    <tr class="border-b border-slate-50 hover:bg-slate-50/70 transition-colors group" data-idx="${a._idx}">
+
+      <td class="px-4 py-3 text-sm text-slate-700 font-medium whitespace-nowrap">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-full bg-brand-100 text-brand-600 text-xs font-semibold
+                       flex items-center justify-center shrink-0">
+            ${escapeHtml(a.paciente.charAt(0).toUpperCase())}
+          </span>
+          ${escapeHtml(a.paciente)}
+        </div>
+      </td>
+
+      <td class="px-4 py-3 text-sm text-slate-600 max-w-[140px]">
+        <div class="flex flex-wrap gap-1">
+          ${(a.sintomas || '—').split(', ').map(s =>
+            `<span class="inline-block bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full">${escapeHtml(s)}</span>`
+          ).join('')}
+        </div>
+      </td>
+
+      <td class="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">${escapeHtml(a.medico || '—')}</td>
+      <td class="px-4 py-3 text-sm text-slate-400 font-mono whitespace-nowrap">${formatarData(a.data_consulta)}</td>
+
+      <td class="px-4 py-3 text-right">
+        <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onclick="abrirModalVer(${a._idx})"
+            class="p-1.5 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+            title="Visualizar detalhes">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+                   -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+          </button>
+          <button onclick="abrirModalEditar(${a._idx})"
+            class="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+            title="Editar">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
+                   m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+          </button>
+          <button onclick="abrirModalExcluir(${a._idx})"
+            class="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            title="Excluir">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858
+                   L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+// ── BUSCA ──────────────────────────────────────
+
+function filtrarTabela() {
+  const q = document.getElementById('tabela-busca').value.toLowerCase();
+  if (!q) { renderizarTabela(); return; }
+  renderizarTabela(atendimentos.filter(a =>
+    a.paciente.toLowerCase().includes(q) ||
+    (a.sintomas || '').toLowerCase().includes(q) ||
+    (a.medico   || '').toLowerCase().includes(q)
+  ));
+}
+
+// ── MODAL VER ─────────────────────────────────
+
+function abrirModalVer(idx) {
+  const a = atendimentos[idx];
+  if (!a) return;
+
+  document.getElementById('ver-avatar').textContent   = a.paciente.charAt(0).toUpperCase();
+  document.getElementById('ver-paciente').textContent = a.paciente;
+  document.getElementById('ver-medico').textContent   = a.medico || '—';
+  document.getElementById('ver-data').textContent     = formatarData(a.data_consulta);
+
+  const sintomasEl = document.getElementById('ver-sintomas');
+  const lista = (a.sintomas || '—').split(', ');
+  sintomasEl.innerHTML = lista.map(s =>
+    `<span class="inline-flex items-center gap-1 bg-brand-50 text-brand-700 border border-brand-100
+                  text-xs font-medium px-2.5 py-1 rounded-full">
+      <svg class="w-2.5 h-2.5 text-brand-400" fill="currentColor" viewBox="0 0 8 8">
+        <circle cx="4" cy="4" r="3"/>
+      </svg>
+      ${escapeHtml(s)}
+    </span>`
+  ).join('');
+
+  const pront = (a.prontuario || '').trim();
+  const prontuarioEl = document.getElementById('ver-prontuario');
+  if (pront) {
+    prontuarioEl.textContent = pront;
+    prontuarioEl.classList.remove('text-slate-400');
+    prontuarioEl.classList.add('text-slate-700');
+    prontuarioEl.style.fontStyle = 'normal';
+  } else {
+    prontuarioEl.textContent = 'Nenhuma observação registrada.';
+    prontuarioEl.classList.remove('text-slate-700');
+    prontuarioEl.classList.add('text-slate-400');
+    prontuarioEl.style.fontStyle = 'italic';
+  }
+
+  document.getElementById('ver-editar-btn').onclick = () => {
+    fecharModal('modal-ver');
+    setTimeout(() => abrirModalEditar(idx), 220);
+  };
+
+  abrirModal('modal-ver');
+}
+
+// ── MODAL EDITAR ───────────────────────────────
+
+function abrirModalEditar(idx) {
+  const a = atendimentos[idx];
+  if (!a) return;
+
+  document.getElementById('edit-idx').value        = idx;
+  document.getElementById('edit-id').value         = a.id;
+  document.getElementById('edit-nome').value       = a.paciente;
+  document.getElementById('edit-sintoma').value    = a.sintomas   || '';
+  document.getElementById('edit-medico').value     = a.medico     || '';
+  document.getElementById('edit-prontuario').value = a.prontuario || '';
+  document.getElementById('edit-erro').textContent = '';
+
+  abrirModal('modal-editar');
+}
+
+async function confirmarEdicao() {
+  const idx        = parseInt(document.getElementById('edit-idx').value);
+  const id         = parseInt(document.getElementById('edit-id').value);
+  const nome       = document.getElementById('edit-nome').value.trim();
+  const sintoma    = document.getElementById('edit-sintoma').value.trim();
+  const medico     = document.getElementById('edit-medico').value.trim();
+  const prontuario = document.getElementById('edit-prontuario').value.trim();
+  const erroEl     = document.getElementById('edit-erro');
+
+  erroEl.textContent = '';
+  if (!nome || !sintoma || !medico) {
+    erroEl.textContent = 'Preencha paciente, sintoma e médico.';
+    return;
+  }
+
+  const btn = document.getElementById('edit-confirmar');
+  setLoadingBtn(btn, true);
+
+  try {
+    const res  = await fetch(`${API_URL}/atendimento/${id}`, {
+      method : 'PUT',
+      headers: authHeaders(),
+      body   : JSON.stringify({ nome, sintoma, medico, prontuario: prontuario || undefined }),
+    });
+    const data = await res.json();
+
+    if (res.status === 401 || res.status === 403) {
+      mostrarToast('Sessão expirada. Faça login novamente.', 'danger');
+      fazerLogout();
+      return;
+    }
+
+    if (!res.ok) {
+      erroEl.textContent = data.error ?? 'Erro ao salvar.';
+      return;
+    }
+
+    atendimentos[idx] = {
+      ...atendimentos[idx],
+      paciente : nome,
+      sintomas : sintoma,
+      medico,
+      prontuario,
+    };
+    renderizarTabela();
+    fecharModal('modal-editar');
+    mostrarToast('Atendimento atualizado com sucesso!', 'success');
+  } catch {
+    erroEl.textContent = 'Erro ao conectar com a API.';
+  } finally {
+    setLoadingBtn(btn, false);
+  }
+}
+
+// ── MODAL EXCLUIR ──────────────────────────────
+
+function abrirModalExcluir(idx) {
+  const a = atendimentos[idx];
+  if (!a) return;
+
+  document.getElementById('del-idx').value           = idx;
+  document.getElementById('del-id').value            = a.id;
+  document.getElementById('del-nome').textContent    = a.paciente;
+  document.getElementById('del-sintoma').textContent = a.sintomas || '—';
+  document.getElementById('del-medico').textContent  = a.medico   || '—';
+
+  abrirModal('modal-excluir');
+}
+
+async function confirmarExclusao() {
+  const idx  = parseInt(document.getElementById('del-idx').value);
+  const id   = parseInt(document.getElementById('del-id').value);
+  const a    = atendimentos[idx];
+  if (!a) return;
+
+  const btn = document.getElementById('del-confirmar');
+  setLoadingBtn(btn, true);
+
+  try {
+    const res  = await fetch(`${API_URL}/atendimento/${id}`, {
+      method : 'DELETE',
+      headers: { 'Authorization': `Bearer ${getToken()}` },
+    });
+    const data = await res.json();
+
+    if (res.status === 401 || res.status === 403) {
+      mostrarToast('Sessão expirada. Faça login novamente.', 'danger');
+      fazerLogout();
+      return;
+    }
+
+    if (!res.ok) {
+      mostrarToast(data.error ?? 'Erro ao excluir.', 'danger');
+      return;
+    }
+
+    const nome = a.paciente;
+    atendimentos.splice(idx, 1);
+    atendimentos = atendimentos.map((item, i) => ({ ...item, _idx: i }));
+    renderizarTabela();
+    fecharModal('modal-excluir');
+    mostrarToast(`Atendimento de "${nome}" excluído do banco.`, 'danger');
+  } catch {
+    mostrarToast('Erro ao conectar com a API.', 'danger');
+  } finally {
+    setLoadingBtn(btn, false);
+  }
+}
+
+// ── HELPERS MODAL ──────────────────────────────
+
+function abrirModal(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('hidden');
+  requestAnimationFrame(() => {
+    const p = el.querySelector('.modal-panel');
+    p.classList.remove('scale-95', 'opacity-0');
+    p.classList.add('scale-100', 'opacity-100');
+  });
+}
+
+function fecharModal(id) {
+  const el = document.getElementById(id);
+  const p  = el.querySelector('.modal-panel');
+  p.classList.remove('scale-100', 'opacity-100');
+  p.classList.add('scale-95', 'opacity-0');
+  setTimeout(() => el.classList.add('hidden'), 200);
+}
+
+document.addEventListener('click', e => {
+  ['modal-ver', 'modal-editar', 'modal-excluir'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && e.target === el) fecharModal(id);
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  ['modal-ver', 'modal-editar', 'modal-excluir'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.classList.contains('hidden')) fecharModal(id);
+  });
+});
+
+// ── TOAST ──────────────────────────────────────
+
+function mostrarToast(mensagem, tipo = 'success') {
+  const toast = document.getElementById('toast');
+  const icon  = document.getElementById('toast-icon');
+  const text  = document.getElementById('toast-text');
+  const bar   = document.getElementById('toast-bar');
+
+  clearTimeout(toastTimer);
+  text.textContent      = mensagem;
+  toast.style.opacity   = '';
+  toast.style.transform = '';
+
+  const isSuccess = tipo === 'success';
+  toast.className = `fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-white
+    border ${isSuccess ? 'border-emerald-200' : 'border-red-200'}
+    text-slate-700 shadow-lg rounded-xl px-4 py-3 min-w-64 max-w-sm
+    relative overflow-hidden transition-all duration-300`;
+
+  icon.innerHTML = isSuccess
+    ? `<svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor"
+        stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`
+    : `<svg class="w-5 h-5 text-red-400 shrink-0" fill="none" stroke="currentColor"
+        stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>`;
+
+  bar.className = `absolute bottom-0 left-0 h-0.5 rounded-b-xl toast-bar ${isSuccess ? 'bg-emerald-400' : 'bg-red-400'}`;
+  bar.style.animation = 'none'; bar.offsetHeight; bar.style.animation = '';
+
+  toast.style.display = 'flex';
+  toastTimer = setTimeout(() => {
+    toast.style.opacity = '0'; toast.style.transform = 'translateY(1rem)';
+    setTimeout(() => {
+      toast.style.display   = 'none';
+      toast.style.opacity   = '';
+      toast.style.transform = '';
+    }, 300);
+  }, 3500);
+}
+
+// ── UTILS ──────────────────────────────────────
+
+function formatarData(iso) {
+  if (!iso || iso === '—') return '—';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function setLoadingBtn(btn, loading) {
+  if (loading) {
+    btn.disabled = true;
+    btn.dataset.original = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner inline-block"></span>';
+  } else {
+    btn.disabled  = false;
+    btn.innerHTML = btn.dataset.original ?? btn.innerHTML;
+  }
+}
+
+function recarregarTabelaAposRegistro() {
+  carregarAtendimentos();
+}
+  </script>
+
+</body>
+</html>
